@@ -1,23 +1,15 @@
 #pragma once
-#include "spd_protocol.h"
+#include "common.h"
 #include "keys.h"
 #include <string>
 #include <vector>
-#include <map>
 #include <functional>
-
-struct SPD_PartitionInfo {
-    std::string name;
-    uint32_t size;
-    uint32_t start;
-    bool active;
-};
 
 class SPDProcessor {
 public:
     SPDProcessor(KeyManager& key_manager);
     ~SPDProcessor();
-    
+
     bool Connect(int wait_seconds = 30);
     bool Disconnect();
     bool SetBlockSize(uint16_t size);
@@ -34,7 +26,7 @@ public:
     
     bool ErasePartition(const std::string& part_name);
     bool EraseAll();
-    
+
     bool ReadPartitionTable();
     bool Repartition(const std::string& xml_file);
     void PrintPartitionTable() const;
@@ -45,6 +37,7 @@ public:
     bool SetActiveSlot(char slot);
     bool SetBootMode(int mode_id);
     
+
     bool RebootToRecovery();
     bool RebootToFastboot();
     bool ResetDevice();
@@ -56,10 +49,14 @@ public:
     bool ExecuteFDL();
     bool SendCommand(uint8_t cmd, const std::vector<uint8_t>& data = {});
     bool ReadChipUID();
+    
+    void SetNandId(int id);
+    void SetVerboseLevel(int level);
+    void SetTimeout(int ms);
+    void SetDefaultSavePath(const std::string& path);
 
 private:
     KeyManager& key_manager_;
-    std::map<std::string, SPD_PartitionInfo> partition_table_;
     spdio_t* io_ = nullptr;
     
     uint16_t block_size_ = 4096;
@@ -67,11 +64,13 @@ private:
     bool fdl2_executed_ = false;
     int selected_ab_ = -1;
     int nand_id_ = DEFAULT_NAND_ID;
+    std::string save_path_ = ".";
     
     bool initialize_connection();
     bool send_and_receive(uint8_t cmd, const std::vector<uint8_t>& data, std::vector<uint8_t>& response);
     bool dump_partition(const std::string& part_name, uint32_t offset, uint32_t size, const std::string& output);
     bool load_partition(const std::string& part_name, const std::string& input);
-    SPD_PartitionInfo get_partition_info(const std::string& name);
+    partition_t get_partition_info(const std::string& name);
     bool check_confirm(const std::string& action);
+    bool select_active_slot();
 };
