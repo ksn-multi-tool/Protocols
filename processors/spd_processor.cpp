@@ -15,15 +15,38 @@ bool SPDProcessor::ReadPartition(const std::string& part_spec, const std::string
             
             std::string out_file = output + "/" + name + ".bin";
             auto data = SPDProtocol::ReadPartition(name, 0, info.size);
+            if (data.empty()) {
+                LOG_ERROR("Failed to read partition: {}", name);
+                continue;
+            }
             
             std::ofstream file(out_file, std::ios::binary);
+            if (!file) {
+                LOG_ERROR("Cannot create file: {}", out_file);
+                continue;
+            }
             file.write(reinterpret_cast<char*>(data.data()), data.size());
         }
         return true;
     }
     
-    auto data = SPDProtocol::ReadPartition(part_spec, 0, partition_table_[part_spec].size);
+    auto it = partition_table_.find(part_spec);
+    if (it == partition_table_.end()) {
+        LOG_ERROR("Unknown partition: {}", part_spec);
+        return false;
+    }
+    
+    auto data = SPDProtocol::ReadPartition(part_spec, 0, it->second.size);
+    if (data.empty()) {
+        LOG_ERROR("Read failed for partition: {}", part_spec);
+        return false;
+    }
+    
     std::ofstream file(output, std::ios::binary);
+    if (!file) {
+        LOG_ERROR("Cannot create file: {}", output);
+        return false;
+    }
     file.write(reinterpret_cast<char*>(data.data()), data.size());
     return true;
 }
